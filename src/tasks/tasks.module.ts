@@ -6,10 +6,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Task } from './task.entity';
 import { AuthModule } from '../auth/auth.module';
 import { JwtService } from '@nestjs/jwt';
+import { User } from '../auth/user.entity';
+import { UsersRepository } from '../auth/users.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task]), AuthModule],
+  imports: [TypeOrmModule.forFeature([Task, User]), AuthModule],
   controllers: [TasksController],
-  providers: [TasksService, TasksRepository, JwtService],
+  providers: [TasksService, TasksRepository, JwtService, UsersRepository],
 })
 export class TasksModule {}

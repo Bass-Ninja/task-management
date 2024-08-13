@@ -5,12 +5,15 @@ import { CreateTaskDto } from './dto/create-task-dto';
 import { TaskStatus } from './task-status.enum';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GetTasksFilterDto } from './dto/get-tasks-filter-dto';
+import { User } from '../auth/user.entity';
+import { UsersRepository } from '../auth/users.repository';
 
 @Injectable()
 export class TasksRepository extends Repository<Task> {
     constructor(
         @InjectRepository(Task)
         private tasksRepository: Repository<Task>,
+        private usersRepository: UsersRepository
     ) {
         super(
             tasksRepository.target,
@@ -19,33 +22,41 @@ export class TasksRepository extends Repository<Task> {
         );
     }
 
-    async createTask(createTaskDto: CreateTaskDto): Promise<Task> {
+    async createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
         const { title, description } = createTaskDto;
-
+        const userEntity = await this.usersRepository.findOne({ where: { id: user.id } });
         const task: Task = this.create({
             title,
             description,
-            status: TaskStatus.OPEN
+            status: TaskStatus.OPEN,
+
         });
-        await this.save(task);
+        task.user = userEntity;
+        try {
+            await this.save(task);
+        } catch (error) {
+            console.error('Error creating task:', error);
+            throw error;
+        }
         return task;
     }
 
-    async getTasks(filterDto: GetTasksFilterDto): Promise<Task[]> {
+    async getTasks(filterDto: GetTasksFilterDto, userProp: User): Promise<Task[]> {
         const { search, status } = filterDto;
-
+        const { username } = userProp;
+        const user = await this.usersRepository.findOne({ where: { username } });
         const query = this.createQueryBuilder('task');
 
+        query.andWhere({ user });
         if (status) {
             query.andWhere('task.status = :status', { status });
         }
         if (search) {
-            query.andWhere('LOWER(task.title) LIKE LOWER(:search) OR LOWER(task.description) LIKE LOWER(:search)',
+            query.andWhere('(LOWER(task.title) LIKE LOWER(:search) OR LOWER(task.description) LIKE LOWER(:search))',
                 { search: `%${search}%` },
             );
         }
-        const tasks = await query.getMany();
-        return tasks;
+        return await query.getMany();
 
     }
 }
