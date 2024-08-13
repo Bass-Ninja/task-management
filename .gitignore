@@ -52,3 +52,5 @@ bower_components
 .temp
 
 
+/.env.stage.prod
+/.env.stage.dev
