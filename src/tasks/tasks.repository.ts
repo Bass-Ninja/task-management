@@ -24,7 +24,8 @@ export class TasksRepository extends Repository<Task> {
 
     async createTask(createTaskDto: CreateTaskDto, user: User): Promise<Task> {
         const { title, description } = createTaskDto;
-        const userEntity = await this.usersRepository.findOne({ where: { id: user.id } });
+        const { username} = user;
+        const userEntity = await this.usersRepository.findOne({ where: { username } });
         const task: Task = this.create({
             title,
             description,
